@@ -1,0 +1,4 @@
+{
+  "mongoURI": "mongodb+srv://sambhav:sambhavmongo@cluster0.y4mvp.mongodb.net/mern_app?retryWrites=true&w=majority",
+  "jwtSecret": "sl_myjwtscret"
+}
