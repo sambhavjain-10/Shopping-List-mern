@@ -11,16 +11,18 @@ const User = require("../../models/User");
 // @desc    Register New User
 // @access  Public
 
-router.post("/", (req, res) => {
+router.post("/", async (req, res) => {
   const { name, email, password } = req.body;
 
   if (!name || !email || !password)
     return res.status(400).json({ msg: "all fields are mandatory" });
 
-  //check for existing user
+  //Check for Existing User
 
-  User.findOne({ email }).then(user => {
-    if (user) return res.status(400).json({ msg: "user already exists" });
+  try {
+    const ExEmail = await User.findOne({ email });
+    if (ExEmail)
+      return res.status(400).json({ msg: "email already registered" });
 
     const newUser = new User({
       name,
@@ -28,36 +30,25 @@ router.post("/", (req, res) => {
       password,
     });
 
-    //Create salt and hash
-    bcrypt.genSalt(10, (err, salt) => {
-      bcrypt.hash(newUser.password, salt, (err, hash) => {
-        if (err) {
-          throw err;
-        }
-        newUser.password = hash;
-        newUser.save().then(user => {
-          jwt.sign(
-            { id: user.id },
-            config.get("jwtSecret"),
-            { expiresIn: 3600 },
-            (err, token) => {
-              if (err) {
-                throw err;
-              }
-              res.json({
-                token,
-                user: {
-                  id: user.id,
-                  name: user.name,
-                  email: user.email,
-                },
-              });
-            }
-          );
-        });
+    const hash = await bcrypt.hash(newUser.password, 10);
+    newUser.password = hash;
+    newUser.save().then(user => {
+      const token = await jwt.sign({ id: user.id }, config.get("jwtSecret"), {
+        expiresIn: 3600,
+      });
+      res.status(200).json({
+        token,
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+        },
       });
     });
-  });
+    
+  } catch (error) {
+    res.status(500).json({ error });
+  }
 });
 
 module.exports = router;
